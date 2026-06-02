@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pathology Quiz — Dr. Nehad M Reda</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --card: #16161f;
+    --border: #2a2a3a;
+    --accent: #7c6aff;
+    --accent2: #ff6a7c;
+    --green: #4ade80;
+    --red: #f87171;
+    --text: #e8e8f0;
+    --muted: #6b6b88;
+    --dim: #3a3a55;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 0 0 4rem;
+  }
+
+  /* HEADER */
+  .header {
+    background: linear-gradient(135deg, #0d0b1a 0%, #12101f 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 2.5rem 2rem 2rem;
+    text-align: center;
+    position: relative;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent));
+  }
+  .header h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.6rem, 4vw, 2.8rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #fff;
+  }
+  .header h1 span { color: var(--accent); }
+  .header p {
+    margin-top: 0.5rem;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+  }
+
+  /* SCOREBAR */
+  .scorebar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,10,15,0.95);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+    padding: 0.75rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .progress-wrap {
+    flex: 1;
+    height: 4px;
+    background: var(--dim);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+  .score-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .score-label span { color: var(--accent); font-weight: 600; }
+
+  /* MAIN */
+  .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+  /* QUESTION CARD */
+  .q-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.8rem;
+    margin-bottom: 1.5rem;
+    transition: border-color 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .q-card.answered-correct { border-color: rgba(74,222,128,0.4); }
+  .q-card.answered-wrong { border-color: rgba(248,113,113,0.3); }
+
+  .q-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.7rem;
+  }
+  .q-text {
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.65;
+    color: var(--text);
+    margin-bottom: 1.2rem;
+  }
+
+  /* OPTIONS */
+  .opts { display: flex; flex-direction: column; gap: 0.6rem; }
+
+  .opt {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    text-align: left;
+    width: 100%;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.93rem;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .opt:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgba(124,106,255,0.08);
+    transform: translateX(3px);
+  }
+  .opt:active:not(:disabled) { transform: translateX(1px) scale(0.99); }
+  .opt:disabled { cursor: default; transform: none; }
+
+  .opt-letter {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    min-width: 20px;
+    padding-top: 2px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .opt.correct {
+    background: rgba(74,222,128,0.12);
+    border-color: rgba(74,222,128,0.6);
+    color: #86efac;
+  }
+  .opt.correct .opt-letter { color: var(--green); }
+
+  .opt.wrong {
+    background: rgba(248,113,113,0.1);
+    border-color: rgba(248,113,113,0.5);
+    color: #fca5a5;
+  }
+  .opt.wrong .opt-letter { color: var(--red); }
+
+  /* FEEDBACK */
+  .feedback {
+    display: none;
+    margin-top: 1rem;
+    padding: 1rem 1.2rem;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    line-height: 1.7;
+  }
+  .feedback.show { display: block; }
+  .feedback.fb-correct {
+    background: rgba(74,222,128,0.08);
+    border: 1px solid rgba(74,222,128,0.3);
+  }
+  .feedback.fb-wrong {
+    background: rgba(248,113,113,0.08);
+    border: 1px solid rgba(248,113,113,0.3);
+  }
+  .fb-title {
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .fb-correct .fb-title { color: var(--green); }
+  .fb-wrong .fb-title { color: var(--red); }
+  .fb-exp { color: #b0b0cc; }
+
+  /* RESULT PANEL */
+  .result {
+    display: none;
+    text-align: center;
+    padding: 3rem 2rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-top: 2rem;
+  }
+  .result.show { display: block; }
+  .result-score {
+    font-family: 'Syne', sans-serif;
+    font-size: 5rem;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .result-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 0.5rem;
+    letter-spacing: 0.1em;
+  }
+  .result-msg {
+    margin-top: 1.5rem;
+    font-size: 1.1rem;
+    color: var(--text);
+  }
+  .btn-retry {
+    margin-top: 2rem;
+    padding: 0.8rem 2rem;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .btn-retry:hover { opacity: 0.85; transform: translateY(-1px); }
+  .btn-retry:active { transform: scale(0.98); }
+
+  @media (max-width: 500px) {
+    .q-card { padding: 1.3rem; }
+    .header h1 { font-size: 1.4rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Pathology <span>MCQ Quiz</span></h1>
+  <p>DR. NEHAD M REDA &nbsp;·&nbsp; 50 QUESTIONS &nbsp;·&nbsp; ALL TOPICS</p>
+</div>
+
+<div class="scorebar">
+  <div class="progress-wrap"><div class="progress-bar" id="prog"></div></div>
+  <div class="score-label">Score: <span id="scoreDisplay">0</span> / <span id="totalDisplay">50</span></div>
+</div>
+
+<div class="main" id="quizMain"></div>
+
+<script>
+const questions = [
+  {
+    q: "In contrast to acute endocarditis, the vegetations of subacute endocarditis typically develop on:",
+    opts: ["Previously healthy, normal valves","Previously damaged or scarred valves","Prosthetic valves only","The walls of the large arteries only"],
+    ans: 0,
+    exp: "Subacute infective endocarditis typically affects previously NORMAL valves (or mildly abnormal), while ACUTE endocarditis tends to affect previously damaged or scarred valves and prosthetic valves."
+  },
+  {
+    q: "Which vascular lesion is the hallmark of benign hypertension and is characterized by a glassy, pink thickening of the arteriolar walls?",
+    opts: ["Hyperplastic arteriolosclerosis","Hyaline arteriolosclerosis","Monckeberg medial sclerosis","Atherosclerosis"],
+    ans: 1,
+    exp: "Hyaline arteriolosclerosis = glassy, pink (eosinophilic) homogeneous material deposited in the arteriolar wall. هي العلامة المميزة للضغط الحميد. Hyperplastic = onion-skin = Malignant HTN."
+  },
+  {
+    q: "Which of the following is the defining characteristic of a fibrofatty atheroma compared to a fatty streak?",
+    opts: ["Presence of intracellular lipid only","Formation of a necrotic lipid core covered by a fibrous cap","Reversibility with diet alone","Involvement of the small capillaries"],
+    ans: 1,
+    exp: "الـ Fatty streak فيها intracellular lipid (foam cells) بس. الـ Atheroma (fibrofatty plaque) الأكثر تطوراً فيها: fibrous cap فوق + necrotic lipid core جوّا. ده الفرق الجوهري."
+  },
+  {
+    q: "Which of the following is classified as a non-modifiable risk factor for atherosclerosis?",
+    opts: ["Hyperlipidemia","Cigarette smoking","Family history and genetics","Sedentary lifestyle"],
+    ans: 2,
+    exp: "Non-modifiable = مش في إيدك تغيرها: Age, Sex, Genetics, Family history. الـ Hyperlipidemia, Smoking, Sedentary lifestyle = modifiable (تقدر تتحكم فيها)."
+  },
+  {
+    q: "Which of the following features defines a complicated atheroma compared to a simple fibrofatty plaque?",
+    opts: ["Presence of a few foam cells in the intima","Surface ulceration, thinning of the fibrous cap, and overlying thrombosis","A flat yellow streak on the endothelial surface","Migration of smooth muscle cells to the intima"],
+    ans: 1,
+    exp: "الـ Complicated plaque فيها: Calcification + Ulceration + Thrombosis + Haemorrhage + Aneurysmal dilatation. Surface ulceration + fibrous cap thinning + overlying thrombosis = علامات الـ complicated plaque."
+  },
+  {
+    q: "Which stage of lobar pneumonia is characterized by the presence of numerous erythrocytes, neutrophils, and fibrin within the alveolar spaces, giving the lung a liver-like consistency?",
+    opts: ["Congestion","Red hepatization","Grey hepatization","Resolution"],
+    ans: 1,
+    exp: "Red Hepatization (يوم 2-4): RBCs كتير + fibrin network + neutrophils في الـ alveolar spaces. الرئة بتبقى حمرا، صلبة، جافة — شبه الكبد. اسمها Red لأن الدم (RBCs) هو السبب."
+  },
+  {
+    q: "In the stage of grey hepatization, what is the primary reason for the color change appearance of the lung tissue?",
+    opts: ["Rupture of alveolar capillaries","Massive influx of fresh red blood cells","Disintegration of red blood cells","Complete clearance of debris by alveolar macrophages"],
+    ans: 2,
+    exp: "Grey Hepatization: الـ RBCs بتتكسر وتتحلل (haemolysed) + الـ fibrin بيتقل ويتراكم في المنتصف + الـ congestion بيقل. كل ده يخلي الرئة تبقى رمادية بدل الحمرا. الـ macrophages بيبدأوا في الـ Resolution مش Grey."
+  },
+  {
+    q: "Which pathological feature distinguishes lobar pneumonia from bronchopneumonia?",
+    opts: ["Involvement of an entire lobe or a large portion of it uniformly","Presence of patchy, focal areas of consolidation","Infection primarily centered around the bronchioles","The absence of fibrin in the inflammatory exudate"],
+    ans: 0,
+    exp: "Lobar Pneumonia = diffuse involvement of an entire lobe (or more) uniformly. Bronchopneumonia = patchy consolidation centered around bronchioles. ده هو الفرق التشريحي الأساسي."
+  },
+  {
+    q: "Which of the following is the most characteristic macroscopic feature of septic bronchopneumonia?",
+    opts: ["Uniform consolidation of an entire lobe","Multifocal, patchy areas of consolidation or abscess formation","Diffuse involvement of the interstitial tissue without alveolar exudate","A single, large, air-filled thin-walled bulla"],
+    ans: 1,
+    exp: "Bronchopneumonia = multiple consolidated yellowish patches scattered in both lungs (mainly lower lobes). بتعمل abscess كمان. مش uniform ومش lobe كامل. الشكل: multiple patchy yellowish areas exuding pus."
+  },
+  {
+    q: "What is the hallmark physiological feature included in the definition of asthma?",
+    opts: ["Alveolar hypocapnia due to chronic hypoventilation","Exaggerated bronchoconstrictor response to various stimuli — Airway hyper-responsiveness","Permanent dilation of the bronchi and bronchioles","Formation of non-caseating granulomas in the lung parenchyma"],
+    ans: 1,
+    exp: "الأسثما بالتعريف = increased responsiveness of the tracheobronchial tree to various stimuli → widespread spasmodic narrowing (bronchoconstriction). الـ hallmark هو الـ Airway hyper-responsiveness. Reversible وrecurrent وparoxysmal."
+  },
+  {
+    q: "The commonest site of haematogenous osteomyelitis is:",
+    opts: ["Epiphysis of long bones","Metaphysis of long bones","Short bones","Flat bones"],
+    ans: 1,
+    exp: "الـ Metaphysis في الأطفال هي الأكثر تأثراً لأن الدم بيجري ببطء فيها (sluggish blood flow) وهي مليانة بالشعيرات الدموية → البكتيريا بتتجمع وتتكاثر فيها. الـ Diaphysis في Non-hematogenous."
+  },
+  {
+    q: "Sequestrum is a:",
+    opts: ["Newly formed bone","Dead bone","Dead soft tissue","Newly formed soft tissue"],
+    ans: 1,
+    exp: "Sequestrum = قطعة عظم ميت (necrotic bone) منفصلة عن العظم السليم. الثلاثة مصطلحات: Sequestrum (عظم ميت) + Involucrum (غلاف جديد حواليه) + Cloaca (فتحة الصرف)."
+  },
+  {
+    q: "A 70-year-old lady suffered from fracture of femur without history of trauma. X-ray showed thin cortex with loss of cancellous bone. Blood calcium level was normal. The most possible diagnosis is:",
+    opts: ["Osteoma","Osteomyelitis","Osteosarcoma","Osteoporosis"],
+    ans: 3,
+    exp: "Osteoporosis: عجوزة + pathological fracture بدون trauma + thin cortex + loss of cancellous bone + NORMAL calcium (مهم — ده اللي بيفرقها عن Hyperparathyroidism). الـ DEXA هو الـ gold standard للتشخيص."
+  },
+  {
+    q: "Osteomas are most commonly found in the:",
+    opts: ["Long bones of the extremities","Skull and facial bones","Vertebral column","Small bones of the hands and feet"],
+    ans: 1,
+    exp: "Osteoma = benign dense compact bone tumor. أكثر في الـ Skull, jawbones (mandible/maxilla), and sinuses. Gardner Syndrome = multiple osteomas of skull + colonic polyps + thyroid cancer + epidermoid cysts."
+  },
+  {
+    q: "A boy 12-year-old presented with fracture femur. X-ray showed an osteolytic lesion. Bone biopsy showed malignant cells within osteoid matrix. The most possible diagnosis is:",
+    opts: ["Osteosarcoma","Chondrosarcoma","Fibrosarcoma","Giant cell tumor"],
+    ans: 0,
+    exp: "Osteosarcoma: عمر صغير (< 20) + metaphysis + osteolytic lesion + malignant cells producing osteoid matrix = Osteosarcoma بالظبط. أكثر ورم عظمي خبيث أولي. X-ray: Sun Burst + Codman's triangle. Alkaline phosphatase raised."
+  },
+  {
+    q: "The most common tumor of the small bones of the hands and feet is:",
+    opts: ["Enchondroma","Osteochondroma","Osteoclastoma","Cancellous osteoma"],
+    ans: 0,
+    exp: "Enchondroma (Central chondroma) = أكثر ورم في short tubular bones of hands and feet. Benign, from medullary cavity. Enchondromatosis = Ollier's disease. X-ray: central radiolucent lesion with spotty calcification."
+  },
+  {
+    q: "A child 12-year-old with a mass of the upper tibia. X-ray showed a mushroom-like mass. The most possible diagnosis is:",
+    opts: ["Osteoma","Chondroma","Chondrosarcoma","Osteochondroma"],
+    ans: 3,
+    exp: "Osteochondroma = mushroom-shaped bony projection (cartilage-capped exostosis). Childhood & adolescence (10-30). Metaphysis. Around knee (lower femur/upper tibia). مش true tumor — disorder of growth. Cortex ومـ medullary cavity continuous مع host bone."
+  },
+  {
+    q: "Which anatomical site is most commonly involved in conventional chondrosarcoma?",
+    opts: ["Small bones of the hands and feet","Axial skeleton (pelvis, shoulder, ribs)","Epiphyses of long bones in children","Mandible and maxilla"],
+    ans: 1,
+    exp: "Chondrosarcoma = central skeleton: Pelvis (أكثر) + ribs + shoulders. Around knee (femur/tibia) كمان. Age 40-60. X-ray: popcorn/rings and arcs calcification. Better prognosis than osteosarcoma."
+  },
+  {
+    q: "Histologically, which feature is a key indicator of malignancy in a cartilaginous tumor?",
+    opts: ["Presence of a single chondrocyte within a lacuna","Hypercellularity and the presence of binucleated cells within lacunae","Well-defined borders with a rim of sclerotic bone","Abundant extracellular matrix without any cells"],
+    ans: 1,
+    exp: "Chondrosarcoma microscopically: hypercellularity + nuclear atypia (hyperchromatic) + 2 or more cells in the lacunae (binucleated/multinucleated) + tumor giant cells. الـ normal cartilage = single chondrocyte per lacuna."
+  },
+  {
+    q: "Which of the following describes the most common anatomical location for a giant cell tumor?",
+    opts: ["Diaphysis of long bones","Metaphysis of long bones","Epiphysis of long bones in adults","Subperiosteal region of the mid-shaft"],
+    ans: 2,
+    exp: "Giant Cell Tumor (GCT/Osteoclastoma) = Epiphysis of long bones in ADULTS (20-40 years). Around knee (lower femur + upper tibia). مهم: GCT = Epiphysis، Osteosarcoma = Metaphysis! Soap bubble على الأشعة."
+  },
+  {
+    q: "Histologically, Giant Cell Tumor consists of two main cell populations. Which cell type is considered the truly neoplastic component?",
+    opts: ["Multinucleated giant cells","Mononuclear spindle-shaped stromal cells","Endothelial cells","Osteoblasts"],
+    ans: 1,
+    exp: "في الـ GCT: الـ Multinucleated giant cells = non-neoplastic, تشبه osteoclasts (عشان اسمها Osteoclastoma). الـ Mononuclear stromal cells = هي الـ real neoplastic component. Histologic grade بيتحدد من الـ stromal cells مش الـ giant cells."
+  },
+  {
+    q: "Brown atrophy of the heart is an example of:",
+    opts: ["Pressure atrophy","Disuse atrophy","Senile atrophy","Neuropathic atrophy"],
+    ans: 2,
+    exp: "Brown atrophy of the heart = تراكم lipofuscin (wear-and-tear pigment) في cardiomyocytes مع التقدم في السن → قلب بني اللون وصغير الحجم. ده مثال كلاسيكي للـ Senile atrophy (physiological aging)."
+  },
+  {
+    q: "Hypertrophy occurs in tissues composed of:",
+    opts: ["Labile cells","Stable cells","Permanent cells","Active cells"],
+    ans: 2,
+    exp: "Permanent cells (cardiac muscle, neurons, skeletal muscle) لا تنقسم بعد الولادة. لما بيزيد الحمل عليها بتتضخم (hypertrophy) مش بتنقسم. Labile و Stable cells بتنقسم فبتعمل hyperplasia."
+  },
+  {
+    q: "The increase in the size of an organ due to increase in the size of its constituent cells is called:",
+    opts: ["Atrophy","Dystrophy","Hyperplasia","Hypertrophy"],
+    ans: 3,
+    exp: "Hypertrophy = زيادة حجم العضو بسبب زيادة حجم الخلية (مش عددها). Hyperplasia = زيادة العدد. Atrophy = نقصان الحجم. ده التعريف الأساسي."
+  },
+  {
+    q: "Which of the following is a classic example of pure physiological hypertrophy without hyperplasia?",
+    opts: ["Enlargement of the female breast during lactation","Growth of the pregnant uterus","Skeletal muscle enlargement in bodybuilders","Regeneration of the liver after partial resection"],
+    ans: 2,
+    exp: "Skeletal muscle في bodybuilders = pure hypertrophy (زيادة حجم الـ myofibers بدون cell division). الـ Pregnant uterus = hypertrophy + hyperplasia الاتنين. Breast in lactation = hyperplasia أساساً. Liver = hyperplasia."
+  },
+  {
+    q: "The following conditions can occur as physiologic processes EXCEPT:",
+    opts: ["Skeletal muscle hypertrophy","Uterine muscle hypertrophy","Cardiac muscle hypertrophy","Breast hyperplasia"],
+    ans: 2,
+    exp: "Cardiac muscle hypertrophy = PATHOLOGICAL (بتحصل بسبب HTN أو valvular disease — مش physiological). Skeletal muscle hypertrophy = physiological (exercise). Uterine = physiological (pregnancy). Breast hyperplasia = physiological (pregnancy/lactation)."
+  },
+  {
+    q: "An example of hyperplasia is:",
+    opts: ["Biceps enlargement in a weight lifter","Myocardial thickening in a hypertensive","Lymph node in infection","All of the above"],
+    ans: 2,
+    exp: "Lymph node in infection = lymphoid hyperplasia (زيادة عدد lymphocytes في الـ node). Biceps enlargement = hypertrophy. Myocardial thickening in HTN = hypertrophy. الـ hyperplasia = زيادة عدد الخلايا."
+  },
+  {
+    q: "Squamous metaplastic change in specialized epithelium is primarily triggered by:",
+    opts: ["Acute trauma","Chronic irritation","Vitamin deficiency","Genetic mutation"],
+    ans: 1,
+    exp: "Squamous metaplasia = chronic irritation هي الـ trigger الأساسي. أمثلة: تدخين مزمن → bronchial epithelium يتحول لـ squamous. حصوات المثانة/الكلية → transitional epithelium → squamous. Vitamin A deficiency ممكن تسبب كمان لكن الـ chronic irritation هو الأهم."
+  },
+  {
+    q: "The nature of lesion in Barrett's oesophagus is:",
+    opts: ["Congenital anomalies","Inflammation","Metaplastic process","Neoplasia"],
+    ans: 2,
+    exp: "Barrett's oesophagus = columnar epithelium (intestinal type) يحل محل stratified squamous epithelium في المريء بسبب chronic GERD. ده metaplasia. مهم: Barrett's is a pre-malignant condition — can progress to adenocarcinoma."
+  },
+  {
+    q: "Carcinoma in situ (CIS) refers to:",
+    opts: ["A benign tumor","A malignant tumor","A premalignant lesion","A metastatic tumor"],
+    ans: 2,
+    exp: "CIS = خلايا بها كل features الـ malignancy (atypia, pleomorphism, mitoses) لكن لم تخترق الـ basement membrane بعد. هي premalignant / in situ. لما تخترق الـ basement membrane → invasive carcinoma."
+  },
+  {
+    q: "Which of the following peripheral manifestations causes painful nodules when it occurs?",
+    opts: ["Janeway's lesions","Osler's nodes","Petechiae","Splinter hemorrhage"],
+    ans: 1,
+    exp: "Osler's nodes = PAINFUL tender nodules على الأصابع. Janeway lesions = PAINLESS hemorrhagic lesions على الراحتين والأقدام. كلاهم في infective endocarditis. الفرق الأساسي: Osler = Painful, Janeway = Painless."
+  },
+  {
+    q: "All the following are features of subacute infective endocarditis EXCEPT:",
+    opts: ["It commonly affects the mitral and aortic valves","It may be complicated by development of cerebral or mesenteric aneurysms","The kidneys may develop glomerulonephritis","The affected cusps are commonly perforated"],
+    ans: 3,
+    exp: "Perforation of cusps = علامة الـ ACUTE (aggressive) infective endocarditis. الـ Subacute بيعمل vegetations على الـ cusps لكن perforation نادرة. الباقيين كلهم صح للـ Subacute: mitral/aortic valves + mycotic aneurysms + glomerulonephritis + splenomegaly."
+  },
+  {
+    q: "Emboli from the following vegetations may give rise to mycotic aneurysm:",
+    opts: ["Rheumatic vegetations","Vegetations in acute infective endocarditis","Vegetations in subacute infective endocarditis","Vegetations in non-bacterial endocarditis"],
+    ans: 2,
+    exp: "Mycotic aneurysm = aneurysm ناتج من emboli محملة بالبكتيريا تتعلق في جدار الوعاء وتدمره. بيحصل في الـ Subacute infective endocarditis. الـ Rheumatic vegetations صغيرة ومش embolic. الـ Non-bacterial = sterile emboli."
+  },
+  {
+    q: "Malignant tumors can lead to death primarily through which of the following mechanisms?",
+    opts: ["Local and distant organ destruction","Spontaneous resolution of tissue","Increased localized tissue repair","Enhanced nutrient absorption"],
+    ans: 0,
+    exp: "الـ Malignant tumors تقتل بـ: Local organ destruction (direct spread) + Destruction of distant organs (metastasis) + Cachexia + Anemia + Organ failure + Paraneoplastic syndromes. الـ hallmark = local + distant organ destruction."
+  },
+  {
+    q: "A 40-year-old female presents with a small, painless, white, finger-like projection on her soft palate. The biopsy shows stratified squamous epithelium with central fibrovascular core. No invasion of the basement membrane is noted. What is the most likely diagnosis?",
+    opts: ["Basal Cell Carcinoma","Squamous Cell Papilloma","Invasive Squamous Cell Carcinoma","Verrucous Carcinoma"],
+    ans: 1,
+    exp: "Squamous Cell Papilloma (benign): finger-like / papillary projection + stratified squamous epithelium + fibrovascular core + NO invasion of basement membrane. لو في invasion → SCC. الـ BCC بتحصل في الجلد مش الـ soft palate."
+  },
+  {
+    q: "Which of the following organs is most commonly affected by metastases in case of carcinoma of stomach?",
+    opts: ["Pancreas","Liver","Intestine","Brain"],
+    ans: 1,
+    exp: "Stomach carcinoma → portal veins → LIVER (first stop). الـ GIT drainage عبر الـ portal circulation يروح الكبد أولاً. أكتر organ يتأثر بـ metastasis من الـ stomach = Liver. بعدها: lung, peritoneum (Krukenberg tumor في الـ ovaries)."
+  },
+  {
+    q: "Anaplastic cells often have:",
+    opts: ["Large, hyperchromatic nuclei","Small, hypochromatic nuclei","Normal nuclear-cytoplasmic ratio","Low mitotic index"],
+    ans: 0,
+    exp: "Anaplastic cells (poorly differentiated malignant cells): Large hyperchromatic nuclei + High N:C ratio + Prominent nucleoli + Atypical/abnormal mitoses + Pleomorphism. كل ده عكس الـ normal cells."
+  },
+  {
+    q: "Which of the following is true about malignant tumors?",
+    opts: ["When arising from glandular cells are called adenocarcinoma","When arising from epithelial cells are called sarcomas","Rarely metastasis","Always possess tumor giant cells"],
+    ans: 0,
+    exp: "Adenocarcinoma = malignant tumor arising from glandular epithelium (غدي). Epithelial malignant = Carcinoma (مش sarcoma). Sarcoma = mesenchymal origin. Metastasis = hallmark of malignancy (common, not rare). Giant cells = not always present."
+  },
+  {
+    q: "The spread of tumor cells to distant sites is known as:",
+    opts: ["Anaplasia","Metastasis","Invasion","Proliferation"],
+    ans: 1,
+    exp: "Metastasis = tumor implants discontinuous with the primary tumor — spread to distant sites. Invasion = local spread (continuous). Anaplasia = loss of differentiation. Proliferation = cell growth/division."
+  },
+  {
+    q: "When appearing on a surface, which of the following is a characteristic growth pattern for a malignant tumor?",
+    opts: ["Non-capsulated simple polyp","Polypoid fungating or ulcerative","Smooth pedunculated papilloma","Symmetrical globular mass"],
+    ans: 1,
+    exp: "Malignant tumors on surfaces = ulcerative (متقرح) أو fungating (نامي للخارج بشكل غير منتظم). الـ Benign = smooth papilloma أو pedunculated polyp. الـ Ulceration وعدم الانتظام = علامة الـ malignancy."
+  },
+  {
+    q: "Blood spread occurs mainly through:",
+    opts: ["Veins","Arteries","Capillaries","Lymphatics"],
+    ans: 0,
+    exp: "الـ Hematogenous spread بيحصل mainly عبر الـ VEINS (والـ capillaries/venules). الـ Arteries مقاومة للاختراق لأن جدارها سميك وفيه elastic tissue. الـ venous system يوصل للـ liver (via portal) أو lung (via systemic veins)."
+  },
+  {
+    q: "Grossly, metastatic nodules in solid organs like the liver or lungs are typically:",
+    opts: ["Single, well-encapsulated, and globular","Multiple, irregular, and non-capsulated","Small, uniform, and homogenous","Smooth-surfaced with no evidence of necrosis"],
+    ans: 1,
+    exp: "Metastatic nodules = multiple + rounded (variable size) + scattered throughout the organ + non-capsulated. Often with central necrosis (umbilicated appearance). Microscopically: يشبهوا الـ primary tumor اللي جوا منه."
+  },
+  {
+    q: "Which of the following statements is NOT true about Aschoff bodies?",
+    opts: ["They are rheumatic lesions seen grossly as large gray nodules","They are characteristic rheumatic lesions showing central fibrinoid necrosis","They are most commonly detected in the myocardium, particularly on the left side","They may also occur in sites other than the myocardium (paravascular)"],
+    ans: 0,
+    exp: "Aschoff bodies = MICROSCOPIC granulomas (مش grossly large gray nodules). هي microscopic foci في الـ myocardium بتتكون من: central fibrinoid necrosis + Aschoff cells (macrophages) + Anitschkow cells. بتحصل في الـ Left side of the heart mainly."
+  },
+  {
+    q: "What is the definitive histological hallmark that distinguishes SCC (Squamous Cell Carcinoma) from a benign papilloma?",
+    opts: ["Presence of hyperkeratosis","Increased thickness of the spinous layer","Invasion of epithelial cells through the basement membrane","Presence of chronic inflammatory cells"],
+    ans: 2,
+    exp: "الفرق الجوهري الوحيد: Invasion through basement membrane = MALIGNANT (SCC). Papilloma = benign, no invasion. Hyperkeratosis وthick spinous layer يمكن يوجدوا في الاتنين. الـ Basement membrane integrity هو الحد الفاصل."
+  },
+  {
+    q: "Which of the following statements is true for sarcomas?",
+    opts: ["Malignant mesenchymal tumors","Much less common than carcinoma","Distant spread is predominantly the hematogenous route","All of the above"],
+    ans: 3,
+    exp: "All of the above صح: Sarcomas = malignant mesenchymal tumors ✓ + Less common than carcinomas ✓ + Spread mainly by BLOOD (hematogenous) not lymphatic ✓. الـ Carcinomas تنتشر لمفاوياً أولاً، الـ Sarcomas دموياً أولاً."
+  },
+  {
+    q: "Dysplasia is often considered a:",
+    opts: ["Normal physiological adaptation","Benign neoplastic process","Pre-neoplastic lesion with an increased risk of progressing to malignancy","Form of cellular atrophy"],
+    ans: 2,
+    exp: "Dysplasia = pre-neoplastic lesion. فيها cellular pleomorphism + architectural abnormalities + nuclear atypia لكن مش crossing the basement membrane. Reversible في بعض الحالات. لكن ممكن تتطور لـ carcinoma in situ ثم invasive carcinoma."
+  },
+  {
+    q: "Dysplasia: which statement is true?",
+    opts: ["Is a feature of mesenchymal cells","Inevitably progresses to cancer","Is characterised by cellular pleomorphism","Is the same as carcinoma in situ"],
+    ans: 2,
+    exp: "Dysplasia: Characterised by cellular pleomorphism ✓. مش inevitably تتطور لـ cancer (reversible في بعض الحالات). مش feature of mesenchymal cells (هي في epithelial). مش نفس CIS (CIS أشد وأكثر — full thickness involvement)."
+  },
+  {
+    q: "In mechanism of metaplasia, the following is true:",
+    opts: ["Can occur physiological or pathological","Results from change in the phenotype of an already differentiated cell type","Results from reprogramming of stem cells known to exist in normal tissue","A neoplastic process that maintain the integrity of the basement membrane"],
+    ans: 2,
+    exp: "الـ Metaplasia بتحصل من إعادة برمجة الـ stem cells (tissue stem cells) لتنتج نوع خلايا مختلف استجابة للـ stimulus. مش تحويل خلية ناضجة لخلية تانية. والـ reprogrammed stem cells بتنتج خلايا mature من نوع مختلف."
+  },
+  {
+    q: "In hyperplasia: which statement is correct?",
+    opts: ["Endometrial hyperplasia is due to increased estrogen and considered pathological","Can occur in heart and neurons","Altered growth and differentiation occur","Lymphoid hyperplasia can occur after bleeding"],
+    ans: 0,
+    exp: "Endometrial hyperplasia = due to increased estrogen = pathological hyperplasia ✓. الـ Heart وNeurons = permanent cells = لا تعمل hyperplasia. الـ Lymphoid hyperplasia بتحصل بعد INFECTION مش bleeding. الـ altered growth = dysplasia مش hyperplasia."
+  },
+  {
+    q: "Which vascular lesion is the hallmark of benign hypertension and is characterized by a glassy, pink thickening of the arteriolar walls?",
+    opts: ["Hyperplastic arteriolosclerosis","Hyaline arteriolosclerosis","Monckeberg medial sclerosis","Atherosclerosis"],
+    ans: 1,
+    exp: "Hyaline arteriolosclerosis = glassy eosinophilic pink material في جدار الـ arterioles = الـ hallmark بتاع الـ Benign HTN. Hyperplastic (onion-skin) = Malignant HTN. Monckeberg = calcium في الـ media. Atherosclerosis = large/medium arteries."
+  }
+];
+
+let score = 0;
+let answered = 0;
+
+function buildQuiz() {
+  const main = document.getElementById('quizMain');
+  document.getElementById('totalDisplay').textContent = questions.length;
+  
+  questions.forEach(function(q, idx) {
+    const card = document.createElement('div');
+    card.className = 'q-card';
+    card.id = 'card-' + idx;
+    
+    const num = document.createElement('div');
+    num.className = 'q-num';
+    num.textContent = 'QUESTION ' + (idx + 1) + ' OF ' + questions.length;
+    
+    const qtext = document.createElement('div');
+    qtext.className = 'q-text';
+    qtext.textContent = q.q;
+    
+    const opts = document.createElement('div');
+    opts.className = 'opts';
+    opts.id = 'opts-' + idx;
+    
+    q.opts.forEach(function(opt, oi) {
+      const btn = document.createElement('button');
+      btn.className = 'opt';
+      btn.id = 'opt-' + idx + '-' + oi;
+      
+      const letter = document.createElement('span');
+      letter.className = 'opt-letter';
+      letter.textContent = String.fromCharCode(65 + oi) + '.';
+      
+      const txt = document.createElement('span');
+      txt.textContent = opt;
+      
+      btn.appendChild(letter);
+      btn.appendChild(txt);
+      btn.addEventListener('click', function() { choose(idx, oi); });
+      opts.appendChild(btn);
+    });
+    
+    const fb = document.createElement('div');
+    fb.className = 'feedback';
+    fb.id = 'fb-' + idx;
+    
+    const fbTitle = document.createElement('div');
+    fbTitle.className = 'fb-title';
+    fbTitle.id = 'fb-title-' + idx;
+    
+    const fbExp = document.createElement('div');
+    fbExp.className = 'fb-exp';
+    fbExp.textContent = q.exp;
+    
+    fb.appendChild(fbTitle);
+    fb.appendChild(fbExp);
+    
+    card.appendChild(num);
+    card.appendChild(qtext);
+    card.appendChild(opts);
+    card.appendChild(fb);
+    main.appendChild(card);
+  });
+  
+  const result = document.createElement('div');
+  result.className = 'result';
+  result.id = 'result';
+  result.innerHTML = '<div class="result-score" id="finalScore">0/' + questions.length + '</div>' +
+    '<div class="result-label">FINAL SCORE</div>' +
+    '<div class="result-msg" id="resultMsg"></div>' +
+    '<button class="btn-retry" onclick="retryQuiz()">Try Again</button>';
+  main.appendChild(result);
+}
+
+function choose(qIdx, optIdx) {
+  const card = document.getElementById('card-' + qIdx);
+  if (card.classList.contains('answered-correct') || card.classList.contains('answered-wrong')) return;
+  
+  const q = questions[qIdx];
+  const correct = optIdx === q.ans;
+  
+  for (let i = 0; i < q.opts.length; i++) {
+    const btn = document.getElementById('opt-' + qIdx + '-' + i);
+    btn.disabled = true;
+    if (i === q.ans) {
+      btn.classList.add('correct');
+    } else if (i === optIdx && !correct) {
+      btn.classList.add('wrong');
+    }
+  }
+  
+  if (correct) score++;
+  answered++;
+  
+  const fb = document.getElementById('fb-' + qIdx);
+  const fbTitle = document.getElementById('fb-title-' + qIdx);
+  
+  if (correct) {
+    card.classList.add('answered-correct');
+    fb.classList.add('show', 'fb-correct');
+    fbTitle.textContent = 'Correct!';
+  } else {
+    card.classList.add('answered-wrong');
+    fb.classList.add('show', 'fb-wrong');
+    fbTitle.textContent = 'Wrong! The correct answer is: ' + String.fromCharCode(65 + q.ans) + '. ' + q.opts[q.ans];
+  }
+  
+  updateScorebar();
+  
+  if (answered === questions.length) {
+    setTimeout(showResult, 600);
+  }
+}
+
+function updateScorebar() {
+  const pct = Math.round((answered / questions.length) * 100);
+  document.getElementById('prog').style.width = pct + '%';
+  document.getElementById('scoreDisplay').textContent = score;
+}
+
+function showResult() {
+  const result = document.getElementById('result');
+  result.classList.add('show');
+  document.getElementById('finalScore').textContent = score + '/' + questions.length;
+  
+  const pct = Math.round((score / questions.length) * 100);
+  let msg = '';
+  if (pct >= 90) msg = 'Excellent! Ready for the exam!';
+  else if (pct >= 70) msg = 'Good work! Review the ones you missed.';
+  else if (pct >= 50) msg = 'Keep studying — you are getting there!';
+  else msg = 'Review the lecture notes and try again.';
+  
+  document.getElementById('resultMsg').textContent = msg + ' (' + pct + '%)';
+  result.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function retryQuiz() {
+  score = 0;
+  answered = 0;
+  
+  questions.forEach(function(q, idx) {
+    const card = document.getElementById('card-' + idx);
+    card.classList.remove('answered-correct', 'answered-wrong');
+    
+    for (let i = 0; i < q.opts.length; i++) {
+      const btn = document.getElementById('opt-' + idx + '-' + i);
+      btn.disabled = false;
+      btn.classList.remove('correct', 'wrong');
+    }
+    
+    const fb = document.getElementById('fb-' + idx);
+    fb.classList.remove('show', 'fb-correct', 'fb-wrong');
+  });
+  
+  document.getElementById('result').classList.remove('show');
+  document.getElementById('prog').style.width = '0%';
+  document.getElementById('scoreDisplay').textContent = '0';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+buildQuiz();
+</script>
+</body>
+</html>
